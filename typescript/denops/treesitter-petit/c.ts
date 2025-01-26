@@ -35,26 +35,36 @@ export async function csetup(denops: Denops): Promise<void> {
       let tree = parser.parse(lines.join("\n"));
       const query = new Parser.Query(C as unknown as Parser.Language, highlightsQuery);
       let matches = query.matches(tree.rootNode);
-      for (const match of matches) {
-        // console.log(`Pattern: ${match.pattern}`);
-        for (const capture of match.captures) {
-          // ノードがfunctionだったらハイライトグループとしてFunctionを付与
-          if (capture.name === "function") {
-            await fn.matchaddpos(
-              denops,
-              "tsFunction",
-              [[
-                capture.node.startPosition.row + 1,
-                capture.node.startPosition.column + 1,
-                capture.node.endPosition.column - capture.node.startPosition.column,
-              ]],
-            );
-          // console.log(`  Capture Name: ${capture.name}`);
-          // console.log(`  Node Type: ${capture.node.type}`);
-          // console.log(`  Start Pos: (${capture.node.startPosition.row}, ${capture.node.startPosition.column})`);
-          // console.log(`  End Pos:   (${capture.node.endPosition.row}, ${capture.node.endPosition.column})`);
+      const promises: Record<string, Array<Promise<number | undefined>>> = {
+        "tsFunction": [],
+        "tsNumber": [],
+        "tsKeyword": [],
+        "tsString": [],
+        "tsComment": [],
+      };
 
+      for (const match of matches) {
+        for (const capture of match.captures) {
+          const getpos = async (capture: Parser.QueryCapture, captureName: string, highlightName: string): Promise<number | undefined> => {
+            console.debug(capture.name);
+            if (capture.name === captureName) {
+              return await fn.matchaddpos(
+                denops,
+                highlightName,
+                [[
+                  capture.node.startPosition.row + 1,
+                  capture.node.startPosition.column + 1,
+                  capture.node.endPosition.column - capture.node.startPosition.column,
+                ]],
+              );
+            }
           }
+
+          promises["tsComment"].push(getpos(capture, "comment", "tsComment"));
+          promises["tsString"].push(getpos(capture, "string", "tsString"));
+          promises["tsKeyword"].push(getpos(capture, "keyword", "tsKeyword"));
+          promises["tsNumber"].push(getpos(capture, "number", "tsNumber"));
+          promises["tsFunction"].push(getpos(capture, "function", "tsFunction"));
         }
       }
       // 画面をリロード
