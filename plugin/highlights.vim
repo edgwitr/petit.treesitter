@@ -2,6 +2,7 @@
 filetype plugin indent on
 
 " termguicolors
+syntax off
 set termguicolors
 
 " Syntax groups
