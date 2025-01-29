@@ -2,23 +2,23 @@ import type { Setup } from "./lang.ts";
 import type { Denops } from "jsr:@denops/std@^7.4.0";
 import Parser from "npm:tree-sitter@^0.22.4";
 import C from "npm:tree-sitter-c@^0.23.4";
-import { getLangDir } from "../../util/langdir.ts";
-import { applyHighlight } from "../treesitter-petit/highlight.ts";
+import { getLangDir } from "../../../util/langdir.ts";
+import { applyHighlight } from "../../treesitter-petit/highlight.ts";
 import * as fn from "jsr:@denops/std/function";
 import * as autocmd from "jsr:@denops/std/autocmd";
 
-//この関数をSetupとしてexportしたい
 export const setup: Setup = async (denops: Denops, highlight: boolean) => {
   // parser
   const parser = new Parser();
-  parser.setLanguage(C as unknown as Parser.Language);
+  const LANGUAGE: Parser.Language = C as unknown as Parser.Language;
+  parser.setLanguage(LANGUAGE);
 
   // query
   const langUrl = await import.meta.resolve("npm:tree-sitter-c@^0.23.4");
   const langDir = await getLangDir(langUrl);
   const highlightsQueryPath = langDir + "/queries/highlights.scm";
   const highlightsQuery = await Deno.readTextFile(highlightsQueryPath);
-  const query = new Parser.Query(C as unknown as Parser.Language, highlightsQuery);
+  const query = new Parser.Query(LANGUAGE, highlightsQuery);
   let posnums: number[] = [];
 
   if (highlight) {

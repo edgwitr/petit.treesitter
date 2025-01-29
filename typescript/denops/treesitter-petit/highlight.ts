@@ -25,6 +25,7 @@ export const applyHighlight = async (denops: Denops, parser: Parser, query: Pars
 
   const HIGHLIGHTS = [
     { captureName: "variable", highlightName: "tsVariable", priority: -1 },
+    { captureName: "variable.parameter", highlightName: "tsVariable", priority: -1 },
     { captureName: "label", highlightName: "tsLabel", priority: 0 },
     { captureName: "escape", highlightName: "tsEscape", priority: 0 },
     { captureName: "constant", highlightName: "tsConstant", priority: 0 },
@@ -35,7 +36,9 @@ export const applyHighlight = async (denops: Denops, parser: Parser, query: Pars
     { captureName: "keyword", highlightName: "tsKeyword", priority: 0 },
     { captureName: "number", highlightName: "tsNumber", priority: 0 },
     { captureName: "type", highlightName: "tsType", priority: 0 },
+    { captureName: "type.builtin", highlightName: "tsType", priority: 0 },
     { captureName: "function", highlightName: "tsFunction", priority: 0 },
+    { captureName: "function.method", highlightName: "tsFunction", priority: 0 },
   ];
 
   for (const match of matches) {
