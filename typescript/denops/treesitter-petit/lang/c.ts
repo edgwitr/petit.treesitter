@@ -19,15 +19,23 @@ export const setup: Setup = async (denops: Denops, highlight: boolean) => {
   const highlightsQueryPath = langDir + "/queries/highlights.scm";
   const highlightsQuery = await Deno.readTextFile(highlightsQueryPath);
   const query = new Parser.Query(LANGUAGE, highlightsQuery);
-  let posnums: number[] = [];
 
   if (highlight) {
     denops.dispatcher = {
       ... denops.dispatcher,
       async Highlight_C() {
-        // delete syntax
-        await Promise.all(posnums.map((posnum) => { console.log(posnum); fn.matchdelete(denops, posnum);} ));
-        posnums = await applyHighlight(denops, parser, query)
+        // buffer変数のposnumberを取得
+        const posnumbers = await fn.getbufvar(denops, "%", "petit_posnum") as string;
+        //posnumbersがなければconsole.log
+        if (posnumbers !== "") {
+          // posnumbersをnumber[]に変換
+          const posnums = posnumbers.split(",").map((posnum) => parseInt(posnum));
+          // delete syntax
+          await Promise.all(posnums.map((posnum) => { console.log(posnum); fn.matchdelete(denops, posnum);} ));
+        }
+        const result = await applyHighlight(denops, parser, query)
+        // buffer変数にposnumberを保存
+        await fn.setbufvar(denops, "%", "petit_posnum", result.join(","));
       },
     };
 
@@ -42,7 +50,8 @@ export const setup: Setup = async (denops: Denops, highlight: boolean) => {
 
     const filetype = await fn.getbufvar(denops, "%", "&filetype");
     if (filetype === "c") {
-      posnums = await applyHighlight(denops, parser, query)
+      const result = await applyHighlight(denops, parser, query)
+      await fn.setbufvar(denops, "%", "petit_posnum", result.join(","));
       await denops.cmd("redraw");
     }
   }
