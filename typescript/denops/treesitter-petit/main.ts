@@ -1,35 +1,86 @@
 import type { Entrypoint } from "jsr:@denops/std@^7.4.0";
+import * as fn from "jsr:@denops/std/function";
 import * as merge from "npm:deepmerge";
-import type { Setup } from "./lang/lang.ts";
+import Parser from "npm:tree-sitter@^0.22.4";
+import type { Lang } from "./lang/lang.ts";
+import { setupHighlight } from "./highlight.ts";
 
-const TEMPLATE = {
-  highlight: false as boolean,
-  ensure_installed: [] as string[],
+const LANGUAGES: Record<string, string> = {
+  "c": "./lang/c.ts",
+  // "cpp": "./lang/cpp.ts
+  // "rust": "./lang/rust.ts",
+  // "typescript": "./lang/typescript.ts",
+}
+const importTargets: Record<string, string> = {};
+const importedLanguages: Record<string, Lang> = {};
+export interface Config {
+  highlight: {
+    enable: boolean;
+    disable: string[];
+    queries: Record<string, string>;
+  };
+  ensure_installed: string[];
+}
+
+let CONFIG: Config = {
+  highlight: {
+    enable: false,
+    disable: [],
+    queries: {},
+  },
+  ensure_installed: [],
+};
+const checkLang = async (lang: string): Promise<boolean> => {
+  if (importTargets[lang]) {
+    return false;
+  }
+  if (!importedLanguages[lang]) {
+    const target = importTargets[lang];
+    importedLanguages[lang] = await import(target);
+  }
+  return true;
 }
 
 export const main: Entrypoint = async (denops) => {
   denops.dispatcher = {
-    async setup(config: unknown): Promise<void> {
+    setConfig(config: unknown): void {
       const configStr = config as string;
       // merge
-      const result = merge.default(TEMPLATE, configStr);
-      if (result.highlight) {
-        console.log("Highlight");
-      }
-
-      const LANGUAGES: Record<string, string> = {
-        "c": "./lang/c.ts",
-        "cpp": "./lang/cpp.ts",
-        "rust": "./lang/rust.ts",
-        "typescript": "./lang/typescript.ts",
-      }
-      for (const lang of result.ensure_installed) {
-        if (LANGUAGES[lang]) {
-          const langModule = await import(LANGUAGES[lang]);
-          const setup: Setup = langModule.setup;
-          setup(denops,result.highlight);
+      CONFIG = merge.default(CONFIG, configStr) as Config;
+      CONFIG.ensure_installed.forEach((lang) => {
+        if (!LANGUAGES[lang]) {
+          console.error(`Language ${lang} is not supported.`);
+        } else {
+          importTargets[lang] = LANGUAGES[lang];
+          console.debug(`Language ${lang} is imported.`);
         }
+      });
+      if (CONFIG.highlight.enable) {
+        setupHighlight(denops);
       }
     },
+    getConfig(): unknown {
+      return CONFIG;
+    },
+    getTarget(lang): boolean {
+      return !!importTargets[lang as string];
+    },
+    async getLanguage(lang): Promise<Lang> {
+      const result = await checkLang(lang as string);
+      if (!result) {
+        throw new Error(`Language ${lang} is not available.`);
+      }
+      return importedLanguages[lang as string];
+    },
+    async execQuery(...args: unknown[]): Promise<Parser.QueryMatch[]> {
+      const [lang, queryString] = args as [string, string];
+      await checkLang(lang);
+      const parser: Parser = importedLanguages[lang].parser;
+      const language: Parser.Language = importedLanguages[lang].language;
+      const query: Parser.Query = new Parser.Query(language, queryString);
+      const lines = await fn.getline(denops, 1, "$");
+      const tree = parser.parse(lines.join("\n"));
+      return query.matches(tree.rootNode);
+    }
   };
 };
