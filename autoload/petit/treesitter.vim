@@ -8,7 +8,7 @@ function! petit#treesitter#setup(config = {})
   let s:config = a:config
   augroup TreesitterPetit
     autocmd!
-    autocmd User DenopsPluginPost:treesitter-petit call denops#request('treesitter-petit', 'setup', [s:config])
+    autocmd User DenopsPluginPost:treesitter-petit call denops#request('treesitter-petit', 'setConfig', [s:config])
   augroup END
 
 endfunction
