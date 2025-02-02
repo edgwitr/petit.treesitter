@@ -88,11 +88,10 @@ export async function setupHighlight(denops: Denops) {
         return;
       }
       const userQuery = config.highlight.queries[filetype];
-      const lang = await denops.dispatch(t, "getLanguage",[filetype]) as Lang;
-      // console.debug(lang.queries)
-      // const query = userQuery ? userQuery: lang.queries["highlights"];
-      // const matches = await denops.dispatch(t, "execQuery",[filetype, query]) as Parser.QueryMatch[];
-      // await applyHighlight(denops, matches);
+      const lang = await denops.dispatch(t, "getLanguage", filetype) as Lang;
+      const query = userQuery ? userQuery: lang.queries.highlights;
+      const matches = await denops.dispatch(t, "execQuery", filetype, query) as Parser.QueryMatch[];
+      await applyHighlight(denops, matches);
     },
   }
 }

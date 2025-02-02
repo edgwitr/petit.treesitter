@@ -30,13 +30,14 @@ let CONFIG: Config = {
   },
   ensure_installed: [],
 };
-const checkLang = async (lang: string): Promise<boolean> => {
-  if (importTargets[lang]) {
+const checkLang = async (langName: string): Promise<boolean> => {
+  if (!importTargets[langName]) {
     return false;
   }
-  if (!importedLanguages[lang]) {
-    const target = importTargets[lang];
-    importedLanguages[lang] = await import(target);
+  if (!importedLanguages[langName]) {
+    const target = importTargets[langName];
+    const { lang } = await import(target);
+    importedLanguages[langName] = lang as Lang;
   }
   return true;
 }
@@ -62,19 +63,20 @@ export const main: Entrypoint = async (denops) => {
     getConfig(): unknown {
       return CONFIG;
     },
-    getTarget(lang): boolean {
-      return !!importTargets[lang as string];
+    getTarget(langName): boolean {
+      return !!importTargets[langName as string];
     },
-    async getLanguage(lang): Promise<Lang> {
-      const result = await checkLang(lang as string);
+    async getLanguage(langName): Promise<Lang> {
+      const result = await checkLang(langName as string);
       if (!result) {
-        throw new Error(`Language ${lang} is not available.`);
+        throw new Error(`Language ${langName} is not available.`);
       }
-      return importedLanguages[lang as string];
+      return importedLanguages[langName as string];
     },
-    async execQuery(...args: unknown[]): Promise<Parser.QueryMatch[]> {
+    async execQuery(...args: unknown[]): Promise<Parser.QueryMatch[] | void> {
       const [lang, queryString] = args as [string, string];
       await checkLang(lang);
+
       const parser: Parser = importedLanguages[lang].parser;
       const language: Parser.Language = importedLanguages[lang].language;
       const query: Parser.Query = new Parser.Query(language, queryString);

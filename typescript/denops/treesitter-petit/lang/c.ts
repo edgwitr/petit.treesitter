@@ -1,4 +1,4 @@
-import { Lang } from "./lang.ts";
+import type { queries, Lang } from "./lang.ts";
 import type { Denops } from "jsr:@denops/std@^7.4.0";
 import Parser from "npm:tree-sitter@^0.22.4";
 import C from "npm:tree-sitter-c@^0.23.4";
@@ -14,15 +14,16 @@ const highlightsQuery = await Deno.readTextFile(langDir + "/queries/highlights.s
 
 const parser = new Parser();
 const language: Parser.Language = C as Parser.Language;
-const queries: Record<string, string> = {
-  "highlights": highlightsQuery,
-};
 parser.setLanguage(language);
-export default class clang extends Lang {
-  constructor() {
-    super(parser, language, queries);
-  }
-}
+const query: queries = {
+  highlights: highlightsQuery,
+};
+// Lang型としてexport
+export const lang: Lang = {
+  parser: parser,
+  language: language,
+  queries: query,
+};
 
 // export const setup: Setup = async (denops: Denops, highlight: boolean) => {
 //   // parser
