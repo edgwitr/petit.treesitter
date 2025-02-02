@@ -36,8 +36,8 @@ const checkLang = async (langName: string): Promise<boolean> => {
   }
   if (!importedLanguages[langName]) {
     const target = importTargets[langName];
-    const { lang } = await import(target);
-    importedLanguages[langName] = lang as Lang;
+    const langData = await import(target);
+    importedLanguages[langName] = langData.default as Lang;
   }
   return true;
 }
